@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>{{ .Host }} is {{ .Status }}</title>
+<link href="https://fonts.googleapis.com/css?family=Nunito%7CPT+Mono" rel="stylesheet" />
+<style>
+body {
+  font: 4.4vw 'Nunito',sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+}
+a {
+  color: inherit;
+  font: 4vw 'PT Mono',monospace;
+  outline: none;
+}
+em {
+  font: inherit;
+}
+#reachable {
+  background: honeydew;
+}
+#reachable em {
+  color: green;
+}
+#unreachable {
+  background: mistyrose;
+}
+#unreachable em {
+  color: orangered;
+}
+</style>
+</head>
+<body id="{{ .Status }}">
+<div>
+<a href="http://{{ .Host }}/">{{ .Host }}</a> is <em>{{ .Status }}</em>.
+</div>
+</body>
+</html>

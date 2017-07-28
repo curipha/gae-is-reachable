@@ -1,0 +1,10 @@
+runtime: go
+api_version: go1.8
+
+handlers:
+  - url: /
+    static_files: index.html
+    upload: index.html
+  - url: /check
+    script: _go_app
+    secure: always

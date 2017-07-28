@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Is Reachable ?</title>
+<link href="https://fonts.googleapis.com/css?family=Nunito%7CPT+Mono" rel="stylesheet" />
+<style>
+body {
+  font: 4.4vw 'Nunito',sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+}
+input {
+  width: 10em;
+  font: 4vw 'PT Mono',monospace;
+  border: none;
+  border-bottom: 1px #ccc solid;
+  outline: none;
+}
+input:focus {
+  background: ivory;
+}
+</style>
+</head>
+<body>
+<form method="get" action="/check">
+Is <input type="text" name="q" placeholder="www.google.com" autofocus required /> reachable ?
+</form>
+</body>
+</html>
