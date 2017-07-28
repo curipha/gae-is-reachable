@@ -27,6 +27,16 @@ func fetch(r *http.Request, ch chan error, uri string) {
   ch <- err
 }
 
+func gethost(query string) string {
+  uri, err := url.Parse(query)
+
+  if err == nil {
+    return uri.Hostname()
+  }
+
+  return ""
+}
+
 func init() {
   http.HandleFunc("/check", handler)
 }
@@ -46,19 +56,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
   }
 
 
-  uri, err := url.Parse("http://" + query) // TODO: Is there another good way ... ?
+  host := gethost(query)  // Support the query of URI-formatted string
 
-  if err != nil {
-    uri, err = url.Parse(query) // Support the query of URI-formatted string
-
-    if err != nil {
-      http.Error(w, `Bad Request`, http.StatusBadRequest)
-      return
-    }
+  if len(host) < 1 {
+    host = gethost("http://" + query)
   }
-
-
-  host := uri.Hostname()
 
   if len(host) < 1 {
     http.Error(w, `Bad Request`, http.StatusBadRequest)
