@@ -58,10 +58,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-
   query := r.URL.Query().Get("q")
-
-  if len(query) < 1 {
+  if query == "" {
     http.Redirect(w, r, "/", http.StatusFound)
     return
   }
