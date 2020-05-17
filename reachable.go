@@ -1,13 +1,13 @@
-package reachable
+package main
 
 import (
-  "time"
   "html/template"
+  "log"
+  "net"
   "net/http"
   "net/url"
-
-  "google.golang.org/appengine"
-  "google.golang.org/appengine/urlfetch"
+  "os"
+  "time"
 )
 
 type Render struct {
@@ -15,14 +15,13 @@ type Render struct {
   Status string
 }
 
-func fetch(r *http.Request, ch chan error, uri string) {
-  ct := appengine.NewContext(r)
-  tr := &urlfetch.Transport {
-    Context: ct,
-    AllowInvalidServerCertificate: true, // Accept invalid certificate over HTTPS connection
+func connect(ch chan error, host string, port string) {
+  con, err := net.Dial("tcp", net.JoinHostPort(host, port))
+  if err == nil {
+    defer con.Close()
+  } else {
+    log.Println(err)
   }
-  req, _ := http.NewRequest("HEAD", uri, nil)
-  _, err := tr.RoundTrip(req)
 
   ch <- err
 }
@@ -37,8 +36,20 @@ func gethost(query string) string {
   return ""
 }
 
-func init() {
+func main() {
   http.HandleFunc("/check", handler)
+
+  port := os.Getenv("PORT")
+  if port == "" {
+    port = "8080"
+    log.Printf("Defaulting to port %s", port)
+  }
+
+  log.Printf("Listening on port %s", port)
+  err := http.ListenAndServe(":" + port, nil)
+  if err != nil {
+    log.Fatal(err)
+  }
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -70,14 +81,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
   ch := make(chan error, 1)
 
-  go fetch(r, ch, "http://" + host + "/") // TODO: `host` variable may contain other than hostname
-  go fetch(r, ch, "https://" + host + "/")
+  go connect(ch, host, "80")
+  go connect(ch, host, "443")
 
   status := "reachable"
   select {
   case result := <-ch:
     if result != nil {
-      // Failure ... detailed errro can show by: result.Error()
+      // Failure
       status = "unreachable"
     }
   case <- time.After(time.Second * 3):
