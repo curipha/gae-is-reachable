@@ -16,6 +16,8 @@ type Render struct {
 }
 
 func connect(ch chan error, host string, port string) {
+  log.Printf("Connecting to: %s (%s)", host, port)
+
   con, err := net.Dial("tcp", net.JoinHostPort(host, port))
   if err == nil {
     defer con.Close()
@@ -34,6 +36,7 @@ func gethost(query string) string {
   if err == nil && uri.IsAbs() { // IsAbs must be true because a relative URI does not have a host part.
     urihost := uri.Hostname()
     if urihost != "" {
+      log.Printf("URI-like string found, use '%s' as a hostname.", urihost)
       host = urihost
     }
   }
@@ -45,6 +48,7 @@ func gethost(query string) string {
       return ip.String() // TODO: This accepts private IP address :p
     } else {
       // Stop processing if the IP address is a multi-cast/link local/loop-back address.
+      log.Printf("IP address is not a global unicast address: %s", ip.String())
       return ""
     }
   }
@@ -113,6 +117,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
   case <- time.After(time.Second * 3):
     // Timeout
+    log.Println("Connection timeout!!")
     status = "unreachable"
   }
 
