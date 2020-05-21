@@ -18,7 +18,7 @@ type Render struct {
 func connect(ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
 
-  con, err := net.Dial("tcp", net.JoinHostPort(host, port))
+  con, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), time.Second * 5) // Set hard timeout for 5 seconds
   if err == nil {
     defer con.Close()
   } else {
@@ -115,7 +115,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
       // Failure
       status = "unreachable"
     }
-  case <- time.After(time.Second * 3):
+  case <- time.After(time.Second * 3):  // Soft timeout for 3 seconds
     // Timeout
     log.Println("Connection timeout!!")
     status = "unreachable"
