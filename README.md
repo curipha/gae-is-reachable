@@ -9,7 +9,7 @@ Deploy
 ```bash
 git clone https://github.com/curipha/gae-is-reachable.git
 cd gae-is-reachable
-gcloud --quiet app deploy
+gcloud --quiet app deploy --no-cache
 ```
 
 Respect
