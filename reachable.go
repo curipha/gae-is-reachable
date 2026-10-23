@@ -115,22 +115,25 @@ func handler(w http.ResponseWriter, r *http.Request) {
   }
 
 
-  ch := make(chan error, 1)
+  ch := make(chan error, 2)
 
   go connect(ch, host, "80")
   go connect(ch, host, "443")
 
-  status := "reachable"
-  select {
-  case result := <-ch:
-    if result != nil {
-      // Failure
-      status = "unreachable"
+  status := "unreachable"
+  timeout := time.After(3 * time.Second) // Set soft timeout: 3 seconds
+
+  for i := 0; i < 2; i++ {
+    select {
+    case err := <-ch:
+      if err == nil {
+        status = "reachable"
+        i = 2 // quit
+      }
+    case <-timeout:
+      log.Println("Connection timeout!!")
+      i = 2 // quit
     }
-  case <- time.After(time.Second * 3):  // Soft timeout for 3 seconds
-    // Timeout
-    log.Println("Connection timeout!!")
-    status = "unreachable"
   }
 
   data := &Render {
