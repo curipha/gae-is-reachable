@@ -1,12 +1,14 @@
 package main
 
 import (
+  "fmt"
   "html/template"
   "log"
   "net"
   "net/http"
   "net/url"
   "os"
+  "syscall"
   "time"
 )
 
@@ -18,7 +20,23 @@ type Render struct {
 func connect(ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
 
-  con, err := net.DialTimeout("tcp", net.JoinHostPort(host, port), time.Second * 5) // Set hard timeout for 5 seconds
+  dialer := &net.Dialer{
+    Timeout: 5 * time.Second, // Set hard timeout: 5 seconds
+    Control: func(network, address string, _ syscall.RawConn) error {
+      host, _, err := net.SplitHostPort(address)
+      if err != nil {
+        return err
+      }
+
+      ip := net.ParseIP(host)
+      if ip == nil || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() {
+        return fmt.Errorf("forbidden address: %s", ip.String())
+      }
+      return nil
+    },
+  }
+
+  con, err := dialer.Dial("tcp", net.JoinHostPort(host, port))
   if err == nil {
     defer con.Close()
   } else {
@@ -44,13 +62,7 @@ func gethost(query string) string {
   // If the host is exactly IP address, use it as a target host
   ip := net.ParseIP(host)
   if ip != nil {
-    if ip.IsGlobalUnicast() {
-      return ip.String() // TODO: This accepts private IP address :p
-    } else {
-      // Stop processing if the IP address is a multi-cast/link local/loop-back address.
-      log.Printf("IP address is not a global unicast address: %s", ip.String())
-      return ""
-    }
+    return ip.String()
   }
 
   // Check whether the string contains any invalid characters for a hostname
