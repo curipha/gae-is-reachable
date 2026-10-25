@@ -100,7 +100,8 @@ func gethost(query string) string {
 }
 
 func main() {
-  http.HandleFunc("/check", handler)
+  mux := http.NewServeMux()
+  mux.HandleFunc("/check", handler)
 
   port := os.Getenv("PORT")
   if port == "" {
@@ -108,8 +109,18 @@ func main() {
     log.Printf("Defaulting to port %s", port)
   }
 
+
+  server := &http.Server{
+    Addr:              ":" + port,
+    Handler:           mux,
+    ReadHeaderTimeout: 10 * time.Second, // Mitigate Slowloris
+    ReadTimeout:       10 * time.Second,
+    WriteTimeout:      10 * time.Second, // Must exceed the 3s check timeout
+    IdleTimeout:       60 * time.Second,
+  }
+
   log.Printf("Listening on port %s", port)
-  err := http.ListenAndServe(":" + port, nil)
+  err := server.ListenAndServe()
   if err != nil {
     log.Fatal(err)
   }
