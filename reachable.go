@@ -28,9 +28,10 @@ var checkPorts = []string{"80", "443"}
 var blockedPrefixes = []netip.Prefix{
   netip.MustParsePrefix("0.0.0.0/8"),
   netip.MustParsePrefix("100.64.0.0/10"),   // Shared address space (CGNAT)
-  netip.MustParsePrefix("64:ff9b::/96"),    // NAT64 (may embed private IPv4)
-  netip.MustParsePrefix("64:ff9b:1::/48"),  // Local-use NAT64
+  netip.MustParsePrefix("2001::/32"),       // Teredo (may embed IPv4)
   netip.MustParsePrefix("2002::/16"),       // 6to4 (may embed private IPv4)
+  netip.MustParsePrefix("64:ff9b:1::/48"),  // Local-use NAT64
+  netip.MustParsePrefix("64:ff9b::/96"),    // NAT64 (may embed private IPv4)
 }
 
 func connect(ctx context.Context, ch chan error, host string, port string) {
