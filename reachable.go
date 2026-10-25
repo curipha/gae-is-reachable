@@ -25,7 +25,7 @@ type Render struct {
 var tmpl = template.Must(template.ParseFiles("template.html"))
 var checkPorts = []string{"80", "443"}
 
-// blockedPrefixes lists special-purpose ranges that IsGlobalUnicast() does not exclude.
+// blockedPrefixes lists special-purpose ranges that IsGlobalUnicast() does not exclude
 var blockedPrefixes = []netip.Prefix{
   netip.MustParsePrefix("0.0.0.0/8"),
   netip.MustParsePrefix("100.64.0.0/10"),   // Shared address space (CGNAT)
@@ -35,30 +35,33 @@ var blockedPrefixes = []netip.Prefix{
   netip.MustParsePrefix("64:ff9b::/96"),    // NAT64 (may embed private IPv4)
 }
 
+var dialer = &net.Dialer{
+  Control: func(network, address string, _ syscall.RawConn) error {
+    ap, err := netip.ParseAddrPort(address)
+    if err != nil {
+      return err
+    }
+
+    return validateAddr(ap.Addr())
+  },
+}
+
+func validateAddr(a netip.Addr) error {
+  addr := a.Unmap() // Normalize IPv4-mapped IPv6 (::ffff:a.b.c.d)
+  if !addr.IsValid() || !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsUnspecified() {
+    return fmt.Errorf("forbidden address: %s", a)
+  }
+
+  for _, p := range blockedPrefixes {
+    if p.Contains(addr) {
+      return fmt.Errorf("address is in blocked range: %s", a)
+    }
+  }
+  return nil
+}
+
 func connect(ctx context.Context, ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
-
-  dialer := &net.Dialer{
-    Control: func(network, address string, _ syscall.RawConn) error {
-      ap, err := netip.ParseAddrPort(address)
-      if err != nil {
-        return err
-      }
-
-      addr := ap.Addr().Unmap() // Normalize IPv4-mapped IPv6 (::ffff:a.b.c.d)
-      if !addr.IsValid() || !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsUnspecified() {
-        return fmt.Errorf("forbidden address: %s", ap.Addr())
-      }
-
-      for _, p := range blockedPrefixes {
-        if p.Contains(addr) {
-          return fmt.Errorf("address is in blocked range: %s", ap.Addr())
-        }
-      }
-
-      return nil
-    },
-  }
 
   con, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, port))
   if err == nil {
