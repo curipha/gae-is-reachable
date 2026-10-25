@@ -36,7 +36,7 @@ var blockedPrefixes = []netip.Prefix{
 }
 
 var dialer = &net.Dialer{
-  Control: func(network, address string, _ syscall.RawConn) error {
+  Control: func(_, address string, _ syscall.RawConn) error {
     ap, err := netip.ParseAddrPort(address)
     if err != nil {
       return err
