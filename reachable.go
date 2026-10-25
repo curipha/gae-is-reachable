@@ -99,7 +99,7 @@ func gethost(query string) string {
     }
   }
 
-  return host
+  return strings.TrimSuffix(host, ".")
 }
 
 func main() {
