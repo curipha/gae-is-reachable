@@ -1,6 +1,7 @@
 package main
 
 import (
+  "context"
   "fmt"
   "html/template"
   "log"
@@ -29,11 +30,10 @@ var blockedPrefixes = []netip.Prefix{
   netip.MustParsePrefix("2002::/16"),       // 6to4 (may embed private IPv4)
 }
 
-func connect(ch chan error, host string, port string) {
+func connect(ctx context.Context, ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
 
   dialer := &net.Dialer{
-    Timeout: 5 * time.Second, // Set hard timeout: 5 seconds
     Control: func(network, address string, _ syscall.RawConn) error {
       ap, err := netip.ParseAddrPort(address)
       if err != nil {
@@ -55,7 +55,7 @@ func connect(ch chan error, host string, port string) {
     },
   }
 
-  con, err := dialer.Dial("tcp", net.JoinHostPort(host, port))
+  con, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, port))
   if err == nil {
     defer con.Close()
   } else {
@@ -145,13 +145,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
   }
 
 
+  // Cancelled on timeout, client disconnect, or handler return
+  ctx, cancel := context.WithTimeout(r.Context(), 3 * time.Second)
+  defer cancel()
+
   ch := make(chan error, 2)
 
-  go connect(ch, host, "80")
-  go connect(ch, host, "443")
+  go connect(ctx, ch, host, "80")
+  go connect(ctx, ch, host, "443")
 
   status := "unreachable"
-  timeout := time.After(3 * time.Second) // Set soft timeout: 3 seconds
 
   for i := 0; i < 2; i++ {
     select {
@@ -160,8 +163,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
         status = "reachable"
         i = 2 // quit
       }
-    case <-timeout:
-      log.Println("Connection timeout!!")
+    case <-ctx.Done():
+      log.Printf("Connection aborted: %v", ctx.Err())
       i = 2 // quit
     }
   }
