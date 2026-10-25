@@ -60,17 +60,41 @@ func validateAddr(a netip.Addr) error {
   return nil
 }
 
-func connect(ctx context.Context, ch chan error, host string, port string) {
+func connect(ctx context.Context, host, port string) error {
   log.Printf("Connecting to: %s (%s)", host, port)
 
   con, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, port))
-  if err == nil {
-    defer con.Close()
-  } else {
+  if err != nil {
     log.Println(err)
+    return err
+  }
+  return con.Close()
+}
+
+func checkReachable(ctx context.Context, host string) bool {
+  // Cancelled on timeout, client disconnect, or handler return
+  ctx, cancel := context.WithTimeout(ctx, 3 * time.Second)
+  defer cancel() // Aborts remaining dials once a result is determined
+
+  ch := make(chan error, len(checkPorts)) // Buffered so goroutines never block
+  for _, port := range checkPorts {
+    go func(port string) {
+      ch <- connect(ctx, host, port)
+    }(port)
   }
 
-  ch <- err
+  for range checkPorts {
+    select {
+    case err := <-ch:
+      if err == nil {
+        return true
+      }
+    case <-ctx.Done():
+      log.Printf("Connection aborted: %v", ctx.Err())
+      return false
+    }
+  }
+  return false
 }
 
 func gethost(query string) string {
@@ -156,31 +180,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-
-  // Cancelled on timeout, client disconnect, or handler return
-  ctx, cancel := context.WithTimeout(r.Context(), 3 * time.Second)
-  defer cancel()
-
-  checks := len(checkPorts)
-  ch := make(chan error, checks)
-
-  for _, port := range checkPorts {
-    go connect(ctx, ch, host, port)
-  }
-
   status := "unreachable"
-
-  for i := 0; i < checks; i++ {
-    select {
-    case err := <-ch:
-      if err == nil {
-        status = "reachable"
-        i = checks // quit
-      }
-    case <-ctx.Done():
-      log.Printf("Connection aborted: %v", ctx.Err())
-      i = checks // quit
-    }
+  if checkReachable(r.Context(), host) {
+    status = "reachable"
   }
 
 
