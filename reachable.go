@@ -1,6 +1,7 @@
 package main
 
 import (
+  "bytes"
   "context"
   "fmt"
   "html/template"
@@ -194,10 +195,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
     Status: status,
   }
 
+
+  var buf bytes.Buffer
+  err := tmpl.Execute(&buf, data)
+  if err != nil {
+    log.Println(err)
+    http.Error(w, `Internal Server Error`, http.StatusInternalServerError)
+    return
+  }
+
   w.Header().Set("X-Content-Type-Options", "nosniff")
   w.Header().Set("Referrer-Policy", "no-referrer")
-
-  err := tmpl.Execute(w, data)
+  _, err = buf.WriteTo(w)
   if err != nil {
     log.Println(err)
   }
