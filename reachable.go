@@ -17,6 +17,8 @@ type Render struct {
   Status string
 }
 
+var tmpl = template.Must(template.ParseFiles("template.html"))
+
 func connect(ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
 
@@ -140,6 +142,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
     Host:   host,
     Status: status,
   }
-  template.Must(template.ParseFiles("template.html")).Execute(w, data)
+
+  err := tmpl.Execute(w, data)
+  if err != nil {
+    log.Println(err)
+  }
   return
 }
