@@ -97,18 +97,8 @@ func checkReachable(ctx context.Context, host string) bool {
   return false
 }
 
-func gethost(query string) string {
+func getHost(query string) string {
   host := strings.TrimSpace(query)
-
-  // If the query can be parsed as an URI, use host part as a target host
-  uri, err := url.Parse(host)
-  if err == nil && uri.IsAbs() { // IsAbs must be true because a relative URI does not have a host part.
-    urihost := uri.Hostname()
-    if urihost != "" {
-      log.Printf("URI-like string found, use '%s' as a hostname.", urihost)
-      host = urihost
-    }
-  }
 
   // If the host is exactly IP address, use it as a target host
   addr, err := netip.ParseAddr(host)
@@ -117,6 +107,16 @@ func gethost(query string) string {
       return "" // Reject IPv6 zone identifiers (e.g. fe80::1%eth0)
     }
     return addr.String()
+  }
+
+  // If the query can be parsed as an URI, use host part as a target host
+  uri, err := url.Parse(host)
+  if err == nil && uri.IsAbs() { // A relative URI does not have a host part
+    urihost := uri.Hostname()
+    if urihost != "" {
+      log.Printf("URI-like string found, use '%s' as a hostname.", urihost)
+      host = urihost
+    }
   }
 
   // Check whether the string contains any invalid characters for a hostname
@@ -174,7 +174,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  host := gethost(query)
+  host := getHost(query)
   if host == "" {
     http.Error(w, `Bad Request`, http.StatusBadRequest)
     return
@@ -187,7 +187,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 
   // IPv6 literals must be enclosed in brackets in a URL
-  // gethost() only allows ':' in IPv6 addresses, so this check is sufficient
+  // getHost() only allows ':' in IPv6 addresses, so this check is sufficient
   urlhost := host
   if strings.Contains(host, ":") {
     urlhost = "[" + host + "]"
