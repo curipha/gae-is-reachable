@@ -6,6 +6,7 @@ import (
   "log"
   "net"
   "net/http"
+  "net/netip"
   "net/url"
   "os"
   "syscall"
@@ -19,21 +20,37 @@ type Render struct {
 
 var tmpl = template.Must(template.ParseFiles("template.html"))
 
+// blockedPrefixes lists special-purpose ranges that IsGlobalUnicast() does not exclude.
+var blockedPrefixes = []netip.Prefix{
+  netip.MustParsePrefix("0.0.0.0/8"),
+  netip.MustParsePrefix("100.64.0.0/10"),   // Shared address space (CGNAT)
+  netip.MustParsePrefix("64:ff9b::/96"),    // NAT64 (may embed private IPv4)
+  netip.MustParsePrefix("64:ff9b:1::/48"),  // Local-use NAT64
+  netip.MustParsePrefix("2002::/16"),       // 6to4 (may embed private IPv4)
+}
+
 func connect(ch chan error, host string, port string) {
   log.Printf("Connecting to: %s (%s)", host, port)
 
   dialer := &net.Dialer{
     Timeout: 5 * time.Second, // Set hard timeout: 5 seconds
     Control: func(network, address string, _ syscall.RawConn) error {
-      host, _, err := net.SplitHostPort(address)
+      ap, err := netip.ParseAddrPort(address)
       if err != nil {
         return err
       }
 
-      ip := net.ParseIP(host)
-      if ip == nil || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() {
-        return fmt.Errorf("forbidden address: %s", ip.String())
+      addr := ap.Addr().Unmap() // Normalize IPv4-mapped IPv6 (::ffff:a.b.c.d)
+      if !addr.IsValid() || !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsUnspecified() {
+        return fmt.Errorf("forbidden address: %s", ap.Addr())
       }
+
+      for _, p := range blockedPrefixes {
+        if p.Contains(addr) {
+          return fmt.Errorf("address is in blocked range: %s", ap.Addr())
+        }
+      }
+
       return nil
     },
   }
