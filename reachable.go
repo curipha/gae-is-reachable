@@ -41,7 +41,6 @@ var dialer = &net.Dialer{
     if err != nil {
       return err
     }
-
     return validateAddr(ap.Addr())
   },
 }
