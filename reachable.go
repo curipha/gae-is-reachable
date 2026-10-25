@@ -69,7 +69,7 @@ func connect(ctx context.Context, ch chan error, host string, port string) {
 }
 
 func gethost(query string) string {
-  host := query
+  host := strings.TrimSpace(query)
 
   // If the query can be parsed as an URI, use host part as a target host
   uri, err := url.Parse(host)
