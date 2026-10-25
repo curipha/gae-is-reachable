@@ -85,6 +85,9 @@ func gethost(query string) string {
   // If the host is exactly IP address, use it as a target host
   addr, err := netip.ParseAddr(host)
   if err == nil {
+    if addr.Zone() != "" {
+      return "" // Reject IPv6 zone identifiers (e.g. fe80::1%eth0)
+    }
     return addr.String()
   }
 
