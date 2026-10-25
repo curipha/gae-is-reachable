@@ -10,12 +10,14 @@ import (
   "net/netip"
   "net/url"
   "os"
+  "strings"
   "syscall"
   "time"
 )
 
 type Render struct {
   Host   string
+  URL    string
   Status string
 }
 
@@ -169,8 +171,18 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
   }
 
+
+  // IPv6 literals must be enclosed in brackets in a URL
+  // gethost() only allows ':' in IPv6 addresses, so this check is sufficient
+  urlhost := host
+  if strings.Contains(host, ":") {
+    urlhost = "[" + host + "]"
+  }
+  link := &url.URL{Scheme: "http", Host: urlhost, Path: "/"}
+
   data := &Render {
     Host:   host,
+    URL:    link.String(),
     Status: status,
   }
 
