@@ -22,6 +22,7 @@ type Render struct {
 }
 
 var tmpl = template.Must(template.ParseFiles("template.html"))
+var checkPorts = []string{"80", "443"}
 
 // blockedPrefixes lists special-purpose ranges that IsGlobalUnicast() does not exclude.
 var blockedPrefixes = []netip.Prefix{
@@ -152,23 +153,25 @@ func handler(w http.ResponseWriter, r *http.Request) {
   ctx, cancel := context.WithTimeout(r.Context(), 3 * time.Second)
   defer cancel()
 
-  ch := make(chan error, 2)
+  checks := len(checkPorts)
+  ch := make(chan error, checks)
 
-  go connect(ctx, ch, host, "80")
-  go connect(ctx, ch, host, "443")
+  for _, port := range checkPorts {
+    go connect(ctx, ch, host, port)
+  }
 
   status := "unreachable"
 
-  for i := 0; i < 2; i++ {
+  for i := 0; i < checks; i++ {
     select {
     case err := <-ch:
       if err == nil {
         status = "reachable"
-        i = 2 // quit
+        i = checks // quit
       }
     case <-ctx.Done():
       log.Printf("Connection aborted: %v", ctx.Err())
-      i = 2 // quit
+      i = checks // quit
     }
   }
 
