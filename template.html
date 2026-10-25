@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <title>{{ .Host }} is {{ .Status }}</title>
@@ -38,7 +38,7 @@ em {
 </head>
 <body id="{{ .Status }}">
 <div>
-<a href="{{ .URL }}">{{ .Host }}</a> is <em>{{ .Status }}</em>.
+<a href="{{ .URL }}" rel="noreferrer">{{ .Host }}</a> is <em>{{ .Status }}</em>.
 </div>
 </body>
 </html>

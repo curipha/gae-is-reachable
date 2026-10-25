@@ -188,15 +188,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
   }
   link := &url.URL{Scheme: "http", Host: urlhost, Path: "/"}
 
-  data := &Render {
+  data := &Render{
     Host:   host,
     URL:    link.String(),
     Status: status,
   }
 
+  w.Header().Set("X-Content-Type-Options", "nosniff")
+  w.Header().Set("Referrer-Policy", "no-referrer")
+
   err := tmpl.Execute(w, data)
   if err != nil {
     log.Println(err)
   }
-  return
 }
