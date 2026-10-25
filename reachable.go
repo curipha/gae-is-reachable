@@ -82,9 +82,9 @@ func gethost(query string) string {
   }
 
   // If the host is exactly IP address, use it as a target host
-  ip := net.ParseIP(host)
-  if ip != nil {
-    return ip.String()
+  addr, err := netip.ParseAddr(host)
+  if err == nil {
+    return addr.String()
   }
 
   // Check whether the string contains any invalid characters for a hostname
