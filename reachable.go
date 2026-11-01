@@ -77,9 +77,9 @@ func checkReachable(ctx context.Context, host string) bool {
 
   ch := make(chan error, len(checkPorts)) // Buffered so goroutines never block
   for _, port := range checkPorts {
-    go func(port string) {
+    go func() {
       ch <- connect(ctx, host, port)
-    }(port)
+    }()
   }
 
   for range checkPorts {
