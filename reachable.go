@@ -129,7 +129,6 @@ func getHost(query string) string {
       return ""
     }
   }
-
   return strings.TrimSuffix(host, ".")
 }
 
@@ -142,7 +141,6 @@ func main() {
     port = "8080"
     log.Printf("Defaulting to port %s", port)
   }
-
 
   server := &http.Server{
     Addr:              ":" + port,
@@ -184,7 +182,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
     status = "reachable"
   }
 
-
   // IPv6 literals must be enclosed in brackets in a URL
   // getHost() only allows ':' in IPv6 addresses, so this check is sufficient
   urlhost := host
@@ -198,7 +195,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
     URL:    link.String(),
     Status: status,
   }
-
 
   var buf bytes.Buffer
   err := tmpl.Execute(&buf, data)
